@@ -81,3 +81,23 @@ test('simple: grey for system, blue for custom, yellow for messages', { options:
   expect(await cellsIn(ui, 'permission')).toEqual([])
   await ui.unmount()
 })
+
+test('writes a shorthand legend under the bar', { options: { mode: 'simple' } }, async ($, on) => {
+  on('session.usage', () => ({ value: usageAt(55, breakdown) }) as never)
+  on('ui.render', engine)
+  const ui = await $.ui.mount({ plugin: 'context-bar', surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect((await ui.find({ type: 'Text', text: 'sys 16k' }))?.props.color).toBe('gray')
+  expect((await ui.find({ type: 'Text', text: ' · custom 3k' }))?.props.color).toBe('blue')
+  expect((await ui.find({ type: 'Text', text: ' · msgs 92k' }))?.props.color).toBe('yellow')
+  expect(await ui.find({ type: 'Text', text: ' · free 57k' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('granular legend names each category', { options: { mode: 'granular' } }, async ($, on) => {
+  on('session.usage', () => ({ value: usageAt(55, breakdown) }) as never)
+  on('ui.render', engine)
+  const ui = await $.ui.mount({ plugin: 'context-bar', surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  for (const text of ['sys 3k', ' · tools 12k', ' · mcp 500', ' · mem 1k', ' · skills 2k', ' · msgs 92k'])
+    expect(await ui.find({ type: 'Text', text })).toBeDefined()
+  await ui.unmount()
+})

@@ -55,6 +55,27 @@ const simplify = (used: ContextCategory[]): ContextCategory[] =>
     tokens: used.filter(row => groupOf(row) === i).reduce((sum, row) => sum + row.tokens, 0),
   }))
 
+// Shorthand labels for the line under the bar; an unlisted category falls back to its first word.
+const SHORT: [RegExp, string][] = [
+  [/^system prompt/i, 'sys'],
+  [/^system tools/i, 'tools'],
+  [/^mcp/i, 'mcp'],
+  [/agent/i, 'agents'],
+  [/memory/i, 'mem'],
+  [/skill/i, 'skills'],
+  [/command/i, 'cmds'],
+  [/^messages/i, 'msgs'],
+  [/^system$/i, 'sys'],
+  [/^custom$/i, 'custom'],
+  [/^free/i, 'free'],
+]
+
+const shortName = (name: string) =>
+  SHORT.find(([pattern]) => pattern.test(name))?.[1] ?? (name.split(' ')[0] ?? name).toLowerCase()
+
+const shortTokens = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}k` : `${n}`
+
 export const register: Register = (on, options) => {
   const mode = options.mode === 'granular' ? 'granular' : 'simple'
 
@@ -85,14 +106,24 @@ export const register: Register = (on, options) => {
       ]
     }
 
+    const labelled = [...used, ...rows.filter(row => row.kind === 'free')].filter(row => row.tokens > 0)
+    const legend = labelled.map((row, i) => (
+      <Text color={row.kind === 'used' ? row.color : 'inactive'}>
+        {i > 0 ? ' · ' : ''}{shortName(row.name)} {shortTokens(row.tokens)}
+      </Text>
+    ))
+
     return (
-      <Box>
-        {engine}
-        {e.props.modes.length > 0 ? <Text dimColor> · </Text> : null}
-        {bar}
-        <Text color={percent === undefined ? 'inactive' : colorFor(percent)}>
-          {' '}{percent === undefined ? '--' : `${percent}%`}
-        </Text>
+      <Box flexDirection="column" alignItems="flex-end">
+        <Box>
+          {engine}
+          {e.props.modes.length > 0 ? <Text dimColor> · </Text> : null}
+          {bar}
+          <Text color={percent === undefined ? 'inactive' : colorFor(percent)}>
+            {' '}{percent === undefined ? '--' : `${percent}%`}
+          </Text>
+        </Box>
+        {legend.length > 0 ? <Box>{legend}</Box> : null}
       </Box>
     )
   })

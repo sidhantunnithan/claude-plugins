@@ -1,6 +1,6 @@
 {
   "name": "context-bar",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Context window usage bar at the right edge of the prompt footer",
   "author": { "name": "sidhantunnithan" },
   "userConfig": {
