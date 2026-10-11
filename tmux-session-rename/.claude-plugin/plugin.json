@@ -1,0 +1,6 @@
+{
+  "name": "tmux-session-rename",
+  "version": "0.1.0",
+  "description": "Names the tmux window after the conversation: on /rename, and when a named session starts or resumes",
+  "author": { "name": "sidhantunnithan" }
+}

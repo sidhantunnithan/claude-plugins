@@ -1,8 +1,19 @@
 {
   "name": "jindan",
-  "owner": { "name": "sidhantunnithan" },
+  "owner": {
+    "name": "sidhantunnithan"
+  },
   "description": "Personal Claude Code mods",
   "plugins": [
-    { "name": "statusline", "source": "./statusline", "description": "Prompt footer status line: model and directory at the left, a context window bar at the right" }
+    {
+      "name": "statusline",
+      "source": "./statusline",
+      "description": "Prompt footer status line: model and directory at the left, a context window bar at the right"
+    },
+    {
+      "name": "tmux-session-rename",
+      "source": "./tmux-session-rename",
+      "description": "Names the tmux window after the conversation: on /rename, and when a named session starts or resumes"
+    }
   ]
 }

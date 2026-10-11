@@ -22,6 +22,7 @@ Or add the marketplace once, then install any mod from it:
 | Mod | What it does |
 | --- | --- |
 | [`statusline`](./statusline) | Status line in the prompt footer. At the left, the model (`Opus 5.5 (1M context)`) and working directory (`~/Projects/foo`, cut from the left past 40 characters). At the right, a context window bar (`▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▒▒▒ 32%`) coloured by what fills the context. **simple** (default): grey for system (prompt, tools, MCP, commands), blue for custom (agents, memory files, skills), yellow for messages. **granular**: each category in its `/context` colour. Free space is `▱`, the autocompact buffer `▒`; the percentage is green below 60%, yellow below 80%, red above. A shorthand line under the bar names each segment (`sys 16k · custom 3k · msgs 92k`). In `/config`: Colour mode, and Show model / Show directory / Show context bar. |
+| [`tmux-session-rename`](./tmux-session-rename) | Names the tmux window after the conversation. `/rename <name>` renames it at once; a bare `/rename` takes the name Claude generates; resuming a named session (`--resume`, `--continue`) names it as the session starts. When the session ends (exit or `/clear`) the window goes back to tmux's automatic name. Does nothing outside tmux; needs no `tmux.conf` changes. |
 
 ## Adding a mod
 
