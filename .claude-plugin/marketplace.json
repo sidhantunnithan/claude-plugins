@@ -3,6 +3,6 @@
   "owner": { "name": "sidhantunnithan" },
   "description": "Personal Claude Code mods",
   "plugins": [
-    { "name": "context-bar", "source": "./context-bar", "description": "Context window usage bar at the right edge of the prompt footer" }
+    { "name": "statusline", "source": "./statusline", "description": "Prompt footer status line: model and directory at the left, a context window bar at the right" }
   ]
 }

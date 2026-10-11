@@ -2,8 +2,19 @@ import type { ContextCategory, Register } from 'claude-code'
 
 const WIDTH = 20
 
+// Catppuccin Mocha, lifted 20% toward white to read brighter in the footer; surface2 stays muted for empty cells.
+const MOCHA = {
+  teal: '#a9e8dd',
+  green: '#b8e9b4',
+  yellow: '#fae8bf',
+  red: '#f5a2b9',
+  blue: '#a1c3fb',
+  overlay1: '#999db0',
+  surface2: '#585b70',
+} as const
+
 const colorFor = (percent: number) =>
-  percent >= 80 ? 'error' : percent >= 60 ? 'warning' : 'success'
+  percent >= 80 ? MOCHA.red : percent >= 60 ? MOCHA.yellow : MOCHA.green
 
 type Segment = { row: ContextCategory; cells: number }
 
@@ -38,9 +49,9 @@ const glyph = { used: '▰', free: '▱', buffer: '▒' } as const
 // Simple mode: grey for the system's own context, blue for what you add, yellow for the conversation.
 // The breakdown has no kind finer than `used`, so the group is read off the row's /context label.
 const SIMPLE = [
-  { name: 'System', color: 'gray' },
-  { name: 'Custom', color: 'blue' },
-  { name: 'Messages', color: 'yellow' },
+  { name: 'System', color: MOCHA.overlay1 },
+  { name: 'Custom', color: MOCHA.blue },
+  { name: 'Messages', color: MOCHA.yellow },
 ] as const
 
 const groupOf = (row: ContextCategory) =>
@@ -75,14 +86,58 @@ const shortName = (name: string) =>
 const shortTokens = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}k` : `${n}`
 
+const MAX_CWD = 40
+
+// Home as ~, then cut from the left so the end of the path stays readable.
+const shortCwd = (cwd: string, home: string | undefined) => {
+  const path = home && (cwd === home || cwd.startsWith(`${home}/`)) ? `~${cwd.slice(home.length)}` : cwd
+  return path.length > MAX_CWD ? `…${path.slice(-(MAX_CWD - 1))}` : path
+}
+
+// $.session.model() gives the id (`claude-opus-5-5[1m]`); show it the way the welcome banner does.
+const modelName = (id: string) => {
+  const match = /^(?:claude-)?([a-z]+)((?:-\d{1,2})*)(?:-\d{8})?(\[1m\])?$/i.exec(id)
+  if (!match) return id
+  const [, family = '', version = '', isLong] = match
+  const name = family[0]!.toUpperCase() + family.slice(1) + (version ? ` ${version.slice(1).replace(/-/g, '.')}` : '')
+  return isLong ? `${name} (1M context)` : name
+}
+
+type Show = { model: boolean; cwd: boolean; bar: boolean }
+
 export const register: Register = (on, options) => {
   const mode = options.mode === 'granular' ? 'granular' : 'simple'
+  const show: Show = {
+    model: options.showModel !== false,
+    cwd: options.showCwd !== false,
+    bar: options.showBar !== false,
+  }
+
+  // Model and directory at the left of the footer, drawn with the engine's hint line.
+  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    const engine = await next(e)
+    if (!show.model && !show.cwd) return engine
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        <Box>
+          {show.model ? <Text color={MOCHA.teal}>{modelName(await $.session.model())}</Text> : null}
+          {show.model && show.cwd ? <Text> </Text> : null}
+          {show.cwd ? <Text color={MOCHA.green}>{shortCwd(await $.session.cwd(), await $.env.get('HOME'))}</Text> : null}
+        </Box>
+        {engine}
+      </Box>
+    )
+  })
 
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const { context } = await $.session.usage({ breakdown: 'summary' })
     const { Box, Text } = $.ui.resolve(e)
-    const percent = context.percent
     const engine = await next(e)
+
+    if (!show.bar) return engine
+
+    const { context } = await $.session.usage({ breakdown: 'summary' })
+    const percent = context.percent
 
     // Deferred tool schemas sit outside the window; /context leaves them off its grid too.
     const rows = (context.breakdown?.categories ?? []).filter(row => row.kind !== 'deferred')
@@ -93,15 +148,15 @@ export const register: Register = (on, options) => {
     let bar
     if (segments.length > 0) {
       bar = segments.map(({ row, cells }) => (
-        <Text color={row.kind === 'used' ? row.color : 'inactive'}>
+        <Text color={row.kind === 'used' ? row.color : MOCHA.surface2}>
           {glyph[row.kind as keyof typeof glyph].repeat(cells)}
         </Text>
       ))
     } else {
       const filled = percent === undefined ? 0 : Math.round((percent / 100) * WIDTH)
       bar = [
-        <Text color={percent === undefined ? 'inactive' : colorFor(percent)}>{'▰'.repeat(filled)}</Text>,
-        <Text color="inactive">{'▱'.repeat(WIDTH - filled)}</Text>,
+        <Text color={percent === undefined ? MOCHA.surface2 : colorFor(percent)}>{'▰'.repeat(filled)}</Text>,
+        <Text color={MOCHA.surface2}>{'▱'.repeat(WIDTH - filled)}</Text>,
       ]
     }
 
@@ -118,7 +173,7 @@ export const register: Register = (on, options) => {
           {engine}
           {e.props.modes.length > 0 ? <Text dimColor> · </Text> : null}
           {bar}
-          <Text color={percent === undefined ? 'inactive' : colorFor(percent)}>
+          <Text color={percent === undefined ? MOCHA.surface2 : colorFor(percent)}>
             {' '}{percent === undefined ? '--' : `${percent}%`}
           </Text>
         </Box>

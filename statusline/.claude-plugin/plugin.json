@@ -1,0 +1,18 @@
+{
+  "name": "statusline",
+  "version": "0.5.0",
+  "description": "Prompt footer status line: model and directory at the left, a context window bar at the right",
+  "author": { "name": "sidhantunnithan" },
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Colour mode",
+      "description": "simple: grey for system, blue for custom (agents, memory, skills), yellow for messages. granular: each category in its /context colour.",
+      "options": ["simple", "granular"],
+      "default": "simple"
+    },
+    "showModel": { "type": "boolean", "title": "Show model", "description": "The main loop's model, as /model shows it.", "default": true },
+    "showCwd": { "type": "boolean", "title": "Show directory", "description": "The session's working directory, home as ~.", "default": true },
+    "showBar": { "type": "boolean", "title": "Show context bar", "description": "The context window bar, percentage and legend.", "default": true }
+  }
+}
