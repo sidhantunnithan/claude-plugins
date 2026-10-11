@@ -1,0 +1,8 @@
+{
+  "name": "jindan",
+  "owner": { "name": "sidhantunnithan" },
+  "description": "Personal Claude Code mods",
+  "plugins": [
+    { "name": "context-bar", "source": "./context-bar", "description": "Context window usage bar at the right edge of the prompt footer" }
+  ]
+}
