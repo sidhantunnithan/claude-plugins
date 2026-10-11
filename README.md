@@ -21,7 +21,7 @@ Or add the marketplace once, then install any mod from it:
 
 | Mod | What it does |
 | --- | --- |
-| [`context-bar`](./context-bar) | Context window usage bar (`▰▰▰▱▱▱▱▱▱▱ 32%`) at the right edge of the prompt footer. Green below 60%, yellow below 80%, red above. |
+| [`context-bar`](./context-bar) | Context window usage bar (`▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▒▒▒ 32%`) at the right edge of the prompt footer. Each category (system prompt, tools, MCP, memory, messages, …) is drawn in its `/context` colour, with free space `▱` and the autocompact buffer `▒`. The percentage is green below 60%, yellow below 80%, red above. |
 
 ## Adding a mod
 
