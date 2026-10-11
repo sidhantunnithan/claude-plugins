@@ -89,7 +89,7 @@ test('writes a shorthand legend under the bar', { options: { mode: 'simple' } },
   expect((await ui.find({ type: 'Text', text: 'sys 16k' }))?.props.color).toBe('gray')
   expect((await ui.find({ type: 'Text', text: ' · custom 3k' }))?.props.color).toBe('blue')
   expect((await ui.find({ type: 'Text', text: ' · msgs 92k' }))?.props.color).toBe('yellow')
-  expect(await ui.find({ type: 'Text', text: ' · free 57k' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /free/ })).toBeUndefined()
   await ui.unmount()
 })
 

@@ -21,7 +21,7 @@ Or add the marketplace once, then install any mod from it:
 
 | Mod | What it does |
 | --- | --- |
-| [`context-bar`](./context-bar) | Context window usage bar (`▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▒▒▒ 32%`) at the right edge of the prompt footer, coloured by what fills the context. **simple** (default): grey for system (prompt, tools, MCP, commands), blue for custom (agents, memory files, skills), yellow for messages. **granular**: each category in its `/context` colour. Free space is `▱`, the autocompact buffer `▒`; the percentage is green below 60%, yellow below 80%, red above. A shorthand line under the bar names each segment (`sys 16k · custom 3k · msgs 92k · free 57k`). Switch modes in `/config` (Colour mode). |
+| [`context-bar`](./context-bar) | Context window usage bar (`▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▒▒▒ 32%`) at the right edge of the prompt footer, coloured by what fills the context. **simple** (default): grey for system (prompt, tools, MCP, commands), blue for custom (agents, memory files, skills), yellow for messages. **granular**: each category in its `/context` colour. Free space is `▱`, the autocompact buffer `▒`; the percentage is green below 60%, yellow below 80%, red above. A shorthand line under the bar names each segment (`sys 16k · custom 3k · msgs 92k`). Switch modes in `/config` (Colour mode). |
 
 ## Adding a mod
 

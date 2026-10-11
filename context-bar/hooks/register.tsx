@@ -67,7 +67,6 @@ const SHORT: [RegExp, string][] = [
   [/^messages/i, 'msgs'],
   [/^system$/i, 'sys'],
   [/^custom$/i, 'custom'],
-  [/^free/i, 'free'],
 ]
 
 const shortName = (name: string) =>
@@ -106,9 +105,9 @@ export const register: Register = (on, options) => {
       ]
     }
 
-    const labelled = [...used, ...rows.filter(row => row.kind === 'free')].filter(row => row.tokens > 0)
+    const labelled = used.filter(row => row.tokens > 0)
     const legend = labelled.map((row, i) => (
-      <Text color={row.kind === 'used' ? row.color : 'inactive'}>
+      <Text color={row.color}>
         {i > 0 ? ' · ' : ''}{shortName(row.name)} {shortTokens(row.tokens)}
       </Text>
     ))
