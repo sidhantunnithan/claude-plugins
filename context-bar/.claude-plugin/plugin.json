@@ -1,1 +1,15 @@
-{ "name": "context-bar", "version": "0.2.0", "description": "Context window usage bar at the right edge of the prompt footer", "author": { "name": "sidhantunnithan" } }
+{
+  "name": "context-bar",
+  "version": "0.3.0",
+  "description": "Context window usage bar at the right edge of the prompt footer",
+  "author": { "name": "sidhantunnithan" },
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Colour mode",
+      "description": "simple: grey for system, blue for custom (agents, memory, skills), yellow for messages. granular: each category in its /context colour.",
+      "options": ["simple", "granular"],
+      "default": "simple"
+    }
+  }
+}
