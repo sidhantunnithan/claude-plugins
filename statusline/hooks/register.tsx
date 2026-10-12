@@ -2,15 +2,18 @@ import type { ContextCategory, Register } from 'claude-code'
 
 const WIDTH = 20
 
-// Catppuccin Mocha, lifted 20% toward white to read brighter in the footer; surface2 stays muted for empty cells.
+// Catppuccin Mocha as its nearest xterm-256 colours. Inside tmux Claude Code rounds each
+// channel to six steps (round(v / 51)), so each value sits in the step of the palette
+// entry it stands for and lands on exactly that entry; elsewhere it draws as given,
+// a few points off the entry at most.
 const MOCHA = {
-  teal: '#a9e8dd',
-  green: '#b8e9b4',
-  yellow: '#fae8bf',
-  red: '#f5a2b9',
-  blue: '#a1c3fb',
-  overlay1: '#999db0',
-  surface2: '#585b70',
+  teal: '#7fd7d7',
+  green: '#7fd77f',
+  yellow: '#ffd7af',
+  red: '#ff7faf',
+  blue: '#7fafff',
+  overlay1: '#7f7faf',
+  surface2: '#4c4c7f',
 } as const
 
 const colorFor = (percent: number) =>
