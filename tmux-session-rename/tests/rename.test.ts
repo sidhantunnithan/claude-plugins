@@ -1,15 +1,21 @@
 import { expect, test } from 'claude-code/testing'
 
-// Hooks beneath the plugin: a tmux pane (or none) and a record of the tmux calls made.
-const tmux = (on: any, pane: string | null = '%7') => {
+// Hooks beneath the plugin: a tmux pane (or none), the session's transcript title
+// (or none) and a record of the tmux calls made.
+const tmux = (on: any, pane: string | null = '%7', title: string | null = null) => {
   const calls: string[][] = []
   on('env.get', () => ({ value: pane ?? undefined }) as never)
+  on('session.id', () => ({ value: 's' }) as never)
   on('process.run', (_: any, e: any) => {
+    if (e.argv[0] === 'sh') {
+      const row = title === null ? '' : JSON.stringify({ type: 'custom-title', customTitle: title, sessionId: 's' }) + '\n'
+      return { value: { exitCode: 0, stdout: row, stderr: '' } } as never
+    }
     calls.push([...e.argv])
     return { value: { exitCode: 0, stdout: '', stderr: '' } } as never
   })
   on('command.run', () => ({ ref: 1 }) as never)
-  on('classic.SessionStart', () => ({}) as never)
+  on('session.start', (_: any, e: any) => ({ cwd: e.cwd }) as never)
   on('session.end', () => ({ sessionId: 's' }) as never)
   return calls
 }
@@ -45,15 +51,29 @@ test('other command output leaves the window alone', async ($, on) => {
   expect(calls).toEqual([])
 })
 
-test('a titled session names the window as it starts', async ($, on) => {
-  const calls = tmux(on)
-  await $.classic.SessionStart({ source: 'resume', session_title: 'probe-one' })
+const start = ($: any) => $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+
+test('/resume names the window after the resumed session', async ($, on) => {
+  const calls = tmux(on, '%7', 'probe-one')
+  await $.command.run({ command: 'resume', args: '' })
   expect(calls).toEqual([['tmux', 'rename-window', '-t', '%7', 'probe-one']])
 })
 
-test('an untitled session start leaves the window alone', async ($, on) => {
+test('/resume into an unnamed session leaves the window alone', async ($, on) => {
   const calls = tmux(on)
-  await $.classic.SessionStart({ source: 'startup' })
+  await $.command.run({ command: 'resume', args: '' })
+  expect(calls).toEqual([])
+})
+
+test('a named session names the window as it starts', async ($, on) => {
+  const calls = tmux(on, '%7', 'probe-one')
+  await start($)
+  expect(calls).toEqual([['tmux', 'rename-window', '-t', '%7', 'probe-one']])
+})
+
+test('an unnamed session start leaves the window alone', async ($, on) => {
+  const calls = tmux(on)
+  await start($)
   expect(calls).toEqual([])
 })
 
@@ -64,8 +84,9 @@ test('session end hands the name back to tmux', async ($, on) => {
 })
 
 test('outside tmux nothing runs', async ($, on) => {
-  const calls = tmux(on, null)
+  const calls = tmux(on, null, 'probe-one')
   await run($, 'fix login bug')
-  await $.classic.SessionStart({ source: 'resume', session_title: 'probe-one' })
+  await $.command.run({ command: 'resume', args: '' })
+  await start($)
   expect(calls).toEqual([])
 })

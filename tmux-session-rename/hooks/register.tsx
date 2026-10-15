@@ -17,6 +17,20 @@ async function nameWindow($: EngineInterface, title: string) {
   if (pane) await $.process.run(['tmux', 'rename-window', '-t', pane, title])
 }
 
+// The session's name as /rename last set it: the newest custom-title row of its
+// transcript. classic.SessionStart would carry it, but plugins at the user tier
+// are bypassed on that event, so the hook never runs in a real session.
+async function sessionTitle($: EngineInterface) {
+  const id = await $.session.id()
+  const { stdout } = await $.process.run([
+    'sh', '-c',
+    'cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/projects/*/"$1".jsonl 2>/dev/null | grep \'"type":"custom-title"\' | tail -n 1',
+    'sh', id,
+  ])
+  if (!stdout.trim()) return undefined
+  return (JSON.parse(stdout) as { customTitle?: string }).customTitle?.trim() || undefined
+}
+
 // rename-window turns automatic-rename off for the window; turning it back on
 // hands the name back to tmux (the running command) once the session is over.
 async function releaseWindow($: EngineInterface) {
@@ -41,10 +55,20 @@ export const register: Register = on => {
     return result
   }).catch(($, e, next) => next(e))
 
-  // A resumed (or otherwise titled) session names the window as it starts.
-  on('classic.SessionStart', async ($, e, next) => {
+  // /resume: the session.end it raises (reason resume) has just handed the window
+  // back to tmux, so name it after the session now running.
+  on('command.run', { command: 'resume' }, async ($, e, next) => {
     const result = await next(e)
-    if (e.session_title) await nameWindow($, e.session_title)
+    const title = await sessionTitle($)
+    if (title) await nameWindow($, title)
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // claude --resume / --continue: a named session names the window as it starts.
+  on('session.start', async ($, e, next) => {
+    const result = await next(e)
+    const title = await sessionTitle($)
+    if (title) await nameWindow($, title)
     return result
   }).catch(($, e, next) => next(e))
 
