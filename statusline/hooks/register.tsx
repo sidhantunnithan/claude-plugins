@@ -53,12 +53,12 @@ const glyph = { used: '▰', free: '▱', buffer: '▒' } as const
 // The 5h window as one thin continuous line, filled from the left.
 const slab = (width = FIVE_HOUR_WIDTH) => Array.from({ length: width }, () => '━')
 
-// Reset time on a 24-hour clock in `timeZone` (an IANA name); host time when it is empty or unknown.
+// Reset time on a 24-hour clock in `timeZone` (an IANA name); host time for Host, empty or unknown.
 const clockFormat = (timeZone: string | undefined) => {
   const format = (zone?: string) =>
     new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone })
   try {
-    return format(timeZone || undefined)
+    return format(timeZone && timeZone !== 'Host' ? timeZone : undefined)
   } catch {
     return format()
   }

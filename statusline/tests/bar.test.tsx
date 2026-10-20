@@ -229,3 +229,13 @@ test('an unknown time zone falls back to host time', { options: { timeZone: 'Not
   expect(await ui.find({ type: 'Text', text: ' 50% » 17:05' })).toBeDefined()
   await ui.unmount()
 })
+
+test('Host reads the 5h reset time in host time', { options: { timeZone: 'Host' } }, async ($, on) => {
+  info(on)
+  const resetsAt = new Date(2026, 9, 20, 17, 5).toISOString()
+  on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
+  on('ui.render', engine)
+  const ui = await mountHint($)
+  expect(await ui.find({ type: 'Text', text: ' 50% » 17:05' })).toBeDefined()
+  await ui.unmount()
+})
