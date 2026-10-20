@@ -216,9 +216,29 @@ test('reads the 5h reset time in the configured time zone', { options: { timeZon
   on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
   on('ui.render', engine)
   const ui = await mountHint($)
-  expect(await ui.find({ type: 'Text', text: ' 50% » 17:05' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: ' 50% » 17:05 (EDT)' })).toBeDefined()
   await ui.unmount()
 })
+
+// The zone's abbreviation follows the reset time, or its offset when it has no name.
+for (const [timeZone, utc, text] of [
+  ['America/New_York', Date.UTC(2026, 0, 20, 22, 5), ' 50% » 17:05 (EST)'],
+  ['Asia/Kolkata', Date.UTC(2026, 9, 20, 11, 35), ' 50% » 17:05 (IST)'],
+  ['Europe/London', Date.UTC(2026, 0, 20, 17, 5), ' 50% » 17:05 (GMT)'],
+  ['Europe/London', Date.UTC(2026, 6, 20, 16, 5), ' 50% » 17:05 (BST)'],
+  ['Asia/Tokyo', Date.UTC(2026, 9, 20, 8, 5), ' 50% » 17:05 (GMT+9)'],
+  ['UTC', Date.UTC(2026, 9, 20, 17, 5), ' 50% » 17:05 (UTC)'],
+] as const) {
+  test(`names ${timeZone} as ${text.slice(text.indexOf('('))}`, { options: { timeZone } }, async ($, on) => {
+    info(on)
+    const resetsAt = new Date(utc).toISOString()
+    on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
+    on('ui.render', engine)
+    const ui = await mountHint($)
+    expect(await ui.find({ type: 'Text', text })).toBeDefined()
+    await ui.unmount()
+  })
+}
 
 test('an unknown time zone falls back to host time', { options: { timeZone: 'Not/AZone' } }, async ($, on) => {
   info(on)

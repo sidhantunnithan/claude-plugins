@@ -53,20 +53,34 @@ const glyph = { used: '▰', free: '▱', buffer: '▒' } as const
 // The 5h window as one thin continuous line, filled from the left.
 const slab = (width = FIVE_HOUR_WIDTH) => Array.from({ length: width }, () => '━')
 
-// Reset time on a 24-hour clock in `timeZone` (an IANA name); host time for Host, empty or unknown.
+// Intl names a zone only in the locales that use it; these are the English ones that name any zone
+// (IST only in en-IN, SGT only in en-SG). A zone none of them names reads as its offset (GMT+9).
+const NAMING_LOCALES = ['en-CA', 'en-GB', 'en-BW', 'en-NZ', 'en-ID', 'en-SG', 'en-GU', 'en-IN', 'en-GY', 'en-HK', 'en-IE']
+
+// Reset time on a 24-hour clock in `timeZone` (an IANA name), then the zone's abbreviation;
+// host time, with no abbreviation, for Host, empty or unknown.
 const clockFormat = (timeZone: string | undefined) => {
-  const format = (zone?: string) =>
+  const time = (zone?: string) =>
     new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone })
+  const zone = timeZone && timeZone !== 'Host' ? timeZone : undefined
   try {
-    return format(timeZone && timeZone !== 'Host' ? timeZone : undefined)
+    const format = time(zone)
+    if (!zone) return (at: number) => format.format(at)
+    const names = NAMING_LOCALES.map(locale => new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: 'short' }))
+    const nameAt = (at: number) => {
+      const found = names.map(f => f.formatToParts(at).find(part => part.type === 'timeZoneName')?.value ?? '')
+      return found.find(name => name && !/^GMT[+-]|Time$/.test(name)) ?? found[0]
+    }
+    return (at: number) => `${format.format(at)} (${nameAt(at)})`
   } catch {
-    return format()
+    const format = time()
+    return (at: number) => format.format(at)
   }
 }
 
-const clockTime = (iso: string | undefined, format: Intl.DateTimeFormat) => {
+const clockTime = (iso: string | undefined, clock: (at: number) => string) => {
   const at = iso === undefined ? NaN : Date.parse(iso)
-  return Number.isNaN(at) ? '--:--' : format.format(at)
+  return Number.isNaN(at) ? '--:--' : clock(at)
 }
 
 // Simple mode: grey for the system's own context, blue for what you add, yellow for the conversation.
