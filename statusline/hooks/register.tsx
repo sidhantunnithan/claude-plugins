@@ -1,6 +1,7 @@
 import type { ContextCategory, Register } from 'claude-code'
 
 const WIDTH = 20
+const FIVE_HOUR_WIDTH = 10
 
 // Catppuccin Mocha as its nearest xterm-256 colours. Inside tmux Claude Code rounds each
 // channel to six steps (round(v / 51)), so each value sits in the step of the palette
@@ -48,6 +49,17 @@ const allocate = (rows: ContextCategory[], width = WIDTH): Segment[] => {
 }
 
 const glyph = { used: '▰', free: '▱', buffer: '▒' } as const
+
+// The 5h window as one thin continuous line, filled from the left.
+const slab = (width = FIVE_HOUR_WIDTH) => Array.from({ length: width }, () => '━')
+
+// Reset time in 24-hour local time, as the footer's other clocks read.
+const clockTime = (iso: string | undefined) => {
+  const at = iso === undefined ? NaN : Date.parse(iso)
+  if (Number.isNaN(at)) return '--:--'
+  const date = new Date(at)
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
 
 // Simple mode: grey for the system's own context, blue for what you add, yellow for the conversation.
 // The breakdown has no kind finer than `used`, so the group is read off the row's /context label.
@@ -106,7 +118,7 @@ const modelName = (id: string) => {
   return isLong ? `${name} (1M context)` : name
 }
 
-type Show = { model: boolean; cwd: boolean; bar: boolean }
+type Show = { model: boolean; cwd: boolean; bar: boolean; fiveHour: boolean }
 
 export const register: Register = (on, options) => {
   const mode = options.mode === 'granular' ? 'granular' : 'simple'
@@ -114,19 +126,38 @@ export const register: Register = (on, options) => {
     model: options.showModel !== false,
     cwd: options.showCwd !== false,
     bar: options.showBar !== false,
+    fiveHour: options.showFiveHour !== false,
   }
 
-  // Model and directory at the left of the footer, drawn with the engine's hint line.
+  // Model, directory and the 5h window at the left of the footer, drawn with the engine's hint line.
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
     const engine = await next(e)
-    if (!show.model && !show.cwd) return engine
     const { Box, Text } = $.ui.resolve(e)
+
+    // Off a subscription there is no 5h window, so no bar.
+    const { rateLimits } = show.fiveHour ? await $.session.usage() : { rateLimits: [] }
+    const fiveHour = rateLimits.find(limit => limit.kind === 'five_hour')
+    let fiveHourBar = null
+    if (fiveHour) {
+      const cells = slab()
+      const filled = Math.min(FIVE_HOUR_WIDTH, Math.round((fiveHour.percentUsed / 100) * FIVE_HOUR_WIDTH))
+      fiveHourBar = [
+        <Text color={MOCHA.blue}>5h </Text>,
+        <Text color={MOCHA.blue}>{cells.slice(0, filled).join('')}</Text>,
+        <Text color={MOCHA.surface2}>{cells.slice(filled).join('')}</Text>,
+        <Text color={MOCHA.blue}> {Math.round(fiveHour.percentUsed)}% » {clockTime(fiveHour.resetsAt)}</Text>,
+      ]
+    }
+
+    if (!show.model && !show.cwd && !fiveHourBar) return engine
     return (
       <Box flexDirection="column">
         <Box>
           {show.model ? <Text color={MOCHA.teal}>{modelName(await $.session.model())}</Text> : null}
           {show.model && show.cwd ? <Text> </Text> : null}
           {show.cwd ? <Text color={MOCHA.green}>{shortCwd(await $.session.cwd(), await $.env.get('HOME'))}</Text> : null}
+          {(show.model || show.cwd) && fiveHourBar ? <Text> </Text> : null}
+          {fiveHourBar}
         </Box>
         {engine}
       </Box>

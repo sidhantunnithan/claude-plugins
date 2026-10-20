@@ -13,7 +13,7 @@ const usageAt = (percent: number | undefined, categories?: Row[]) => ({
     tokens: percent === undefined ? undefined : percent * 2000,
     breakdown: categories === undefined ? undefined : { categories },
   },
-  rateLimits: {},
+  rateLimits: [] as { kind: string; percentUsed: number; resetsAt?: string }[],
   cost: {},
 })
 
@@ -120,6 +120,7 @@ const mountHint = ($: any) =>
   $.ui.mount({ plugin: 'statusline', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' } })
 
 test('draws model and directory at the left of the footer', async ($, on) => {
+  on('session.usage', () => ({ value: usageAt(42) }) as never)
   info(on)
   on('ui.render', hint)
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -132,6 +133,7 @@ test('draws model and directory at the left of the footer', async ($, on) => {
 })
 
 test('cuts a long directory from the left', async ($, on) => {
+  on('session.usage', () => ({ value: usageAt(42) }) as never)
   info(on, '/opt/a/very/long/path/that/goes/on/and/on/to/the/project')
   on('ui.render', hint)
   const ui = await mountHint($)
@@ -158,6 +160,7 @@ test('each part can be switched off', { options: { showModel: false, showBar: fa
 test('names models the way the banner does', async ($, on) => {
   on('session.cwd', () => ({ value: '/tmp' }) as never)
   on('env.get', () => ({ value: '/Users/me' }) as never)
+  on('session.usage', () => ({ value: usageAt(42) }) as never)
   let model = ''
   on('session.model', () => ({ value: model }) as never)
   on('ui.render', hint)
@@ -172,4 +175,36 @@ test('names models the way the banner does', async ($, on) => {
     expect(await ui.find({ type: 'Text', text: name })).toBeDefined()
     await ui.unmount()
   }
+})
+
+test('draws the 5h window as one bar with its reset time', async ($, on) => {
+  info(on)
+  const resetsAt = new Date(2026, 9, 20, 17, 5).toISOString()
+  on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
+  on('ui.render', engine)
+  const ui = await mountHint($)
+  expect(await ui.find({ type: 'Text', text: '5h ' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '━'.repeat(5) })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: ' 50% » 17:05' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('leaves the 5h row out off a subscription', async ($, on) => {
+  info(on)
+  on('session.usage', () => ({ value: usageAt(42) }) as never)
+  on('ui.render', engine)
+  const ui = await mountHint($)
+  expect(await ui.find({ type: 'Text', text: '5h ' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('the 5h bar can be switched off', { options: { showFiveHour: false } }, async ($, on) => {
+  info(on)
+  const resetsAt = new Date(2026, 9, 20, 17, 5).toISOString()
+  on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
+  on('ui.render', engine)
+  const ui = await mountHint($)
+  expect(await ui.find({ type: 'Text', text: '5h ' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: '~/Projects/foo' })).toBeDefined()
+  await ui.unmount()
 })
