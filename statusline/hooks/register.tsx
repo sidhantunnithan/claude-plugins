@@ -53,12 +53,20 @@ const glyph = { used: '▰', free: '▱', buffer: '▒' } as const
 // The 5h window as one thin continuous line, filled from the left.
 const slab = (width = FIVE_HOUR_WIDTH) => Array.from({ length: width }, () => '━')
 
-// Reset time in 24-hour local time, as the footer's other clocks read.
-const clockTime = (iso: string | undefined) => {
+// Reset time on a 24-hour clock in `timeZone` (an IANA name); host time when it is empty or unknown.
+const clockFormat = (timeZone: string | undefined) => {
+  const format = (zone?: string) =>
+    new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone })
+  try {
+    return format(timeZone || undefined)
+  } catch {
+    return format()
+  }
+}
+
+const clockTime = (iso: string | undefined, format: Intl.DateTimeFormat) => {
   const at = iso === undefined ? NaN : Date.parse(iso)
-  if (Number.isNaN(at)) return '--:--'
-  const date = new Date(at)
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  return Number.isNaN(at) ? '--:--' : format.format(at)
 }
 
 // Simple mode: grey for the system's own context, blue for what you add, yellow for the conversation.
@@ -128,6 +136,7 @@ export const register: Register = (on, options) => {
     bar: options.showBar !== false,
     fiveHour: options.showFiveHour !== false,
   }
+  const clock = clockFormat(typeof options.timeZone === 'string' ? options.timeZone.trim() : undefined)
 
   // Model, directory and the 5h window at the left of the footer, drawn with the engine's hint line.
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
@@ -145,7 +154,7 @@ export const register: Register = (on, options) => {
         <Text color={MOCHA.blue}>5h </Text>,
         <Text color={MOCHA.blue}>{cells.slice(0, filled).join('')}</Text>,
         <Text color={MOCHA.surface2}>{cells.slice(filled).join('')}</Text>,
-        <Text color={MOCHA.blue}> {Math.round(fiveHour.percentUsed)}% » {clockTime(fiveHour.resetsAt)}</Text>,
+        <Text color={MOCHA.blue}> {Math.round(fiveHour.percentUsed)}% » {clockTime(fiveHour.resetsAt, clock)}</Text>,
       ]
     }
 

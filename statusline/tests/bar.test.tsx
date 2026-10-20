@@ -208,3 +208,24 @@ test('the 5h bar can be switched off', { options: { showFiveHour: false } }, asy
   expect(await ui.find({ type: 'Text', text: '~/Projects/foo' })).toBeDefined()
   await ui.unmount()
 })
+
+test('reads the 5h reset time in the configured time zone', { options: { timeZone: 'America/New_York' } }, async ($, on) => {
+  info(on)
+  // 21:05 UTC is 17:05 in New York (EDT, UTC-4), whatever the host zone.
+  const resetsAt = new Date(Date.UTC(2026, 9, 20, 21, 5)).toISOString()
+  on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
+  on('ui.render', engine)
+  const ui = await mountHint($)
+  expect(await ui.find({ type: 'Text', text: ' 50% » 17:05' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('an unknown time zone falls back to host time', { options: { timeZone: 'Not/AZone' } }, async ($, on) => {
+  info(on)
+  const resetsAt = new Date(2026, 9, 20, 17, 5).toISOString()
+  on('session.usage', () => ({ value: { ...usageAt(42), rateLimits: [{ kind: 'five_hour', percentUsed: 50, resetsAt }] } }) as never)
+  on('ui.render', engine)
+  const ui = await mountHint($)
+  expect(await ui.find({ type: 'Text', text: ' 50% » 17:05' })).toBeDefined()
+  await ui.unmount()
+})
