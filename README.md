@@ -1,4 +1,4 @@
-# jindan-cc-marketplace
+# claude-plugins
 
 Personal [Claude Code](https://claude.com/claude-code) mods.
 
@@ -7,13 +7,13 @@ Personal [Claude Code](https://claude.com/claude-code) mods.
 One mod, in one step:
 
 ```
-/plugin install statusline --marketplace sidhantunnithan/jindan-cc-marketplace
+/plugin install statusline --marketplace sidhantunnithan/claude-plugins
 ```
 
 Or add the marketplace once, then install any mod from it:
 
 ```
-/plugin marketplace add sidhantunnithan/jindan-cc-marketplace
+/plugin marketplace add sidhantunnithan/claude-plugins
 /plugin install <mod>@jindan
 ```
 
