@@ -194,13 +194,18 @@ export const register: Register = (on, options) => {
     if (!show.bar) return engine
 
     const { context } = await $.session.usage({ breakdown: 'summary' })
-    const percent = context.percent
 
-    // Deferred tool schemas sit outside the window; /context leaves them off its grid too.
-    const rows = (context.breakdown?.categories ?? []).filter(row => row.kind !== 'deferred')
-    const categories = rows.filter(row => row.kind === 'used')
+    // Drawn against the model's whole window, not the compaction window the breakdown's free and
+    // buffer rows fill; deferred tool schemas sit outside it, as /context leaves them off its grid.
+    const categories = (context.breakdown?.categories ?? []).filter(row => row.kind === 'used')
     const used = mode === 'simple' ? simplify(categories) : categories
-    const segments = allocate([...used, ...rows.filter(row => row.kind === 'free'), ...rows.filter(row => row.kind === 'buffer')])
+    const usedTokens = categories.reduce((sum, row) => sum + row.tokens, 0)
+    const free: ContextCategory = { name: 'Free space', color: MOCHA.surface2, kind: 'free', isDeferred: false, tokens: Math.max(0, context.window - usedTokens) }
+    const segments = categories.length > 0 ? allocate([...used, free]) : []
+
+    // The percent is read off the rows the bar draws, so the two never disagree; the API's
+    // figure is absent from a compaction to the next response.
+    const percent = segments.length > 0 ? Math.round((usedTokens / context.window) * 100) : context.percent
 
     let bar
     if (segments.length > 0) {
@@ -246,11 +251,19 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  on('session.compact', async ($, e, next) => {
+  // A compaction reaches no hook of an installed plugin on Team and Enterprise organizations (the
+  // built-in security plugin passes it on past them), but it clears the API's figure: watch that.
+  on('session.start', async ($, e, next) => {
     const result = await next(e)
-    $.ui.invalidate('ui.render')
+    if (!show.bar) return result
+    let last: number | undefined
+    $.clock.every(2000, async () => {
+      const { context } = await $.session.usage()
+      if (context.tokens !== last) $.ui.invalidate('ui.render')
+      last = context.tokens
+    })
     return result
-  }).catch(($, e, next) => next(e))
+  })
 
   on('tool.call', async ($, e, next) => {
     const result = await next(e)

@@ -1,6 +1,6 @@
 {
   "name": "statusline",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Prompt footer status line: model, directory and 5h limit bar at the left, a context window bar at the right",
   "author": { "name": "sidhantunnithan" },
   "userConfig": {

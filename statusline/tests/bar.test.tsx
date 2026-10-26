@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 type Row = { name: string; tokens: number; color: string; kind: 'used' | 'free' | 'buffer' | 'deferred' }
 
@@ -75,8 +75,68 @@ test('granular: colours each category and keeps small ones visible', { options: 
   expect(await cellsIn(ui, 'warning')).toEqual(['▰'])
   expect((await cellsIn(ui, 'permission'))[0]).toMatch(/^▰+$/)
   expect(await cellsIn(ui, 'inactive')).toEqual(['▰'])
-  expect(await cellsIn(ui, '#4c4c7f')).toEqual(['▱▱▱▱▱', '▒▒▒'])
+  expect(await cellsIn(ui, '#4c4c7f')).toEqual(['▱'.repeat(8)])
   expect((await ui.find({ type: 'Text', text: / 55%/ }))?.props.color).toBe('#7fd77f')
+  await ui.unmount()
+})
+
+// Right after a compaction the API figure is absent until the next response: the percent
+// follows the rows the bar draws.
+test('the percent follows the bar, not the API figure', { options: { mode: 'granular' } }, async ($, on) => {
+  info(on)
+  on('session.usage', () => ({ value: usageAt(undefined, breakdown) }) as never)
+  on('ui.render', engine)
+  const ui = await $.ui.mount({ plugin: 'statusline', surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(await ui.find({ type: 'Text', text: / 55%/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /--/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+// A compaction window (autoCompactWindow) smaller than the model's: the breakdown's rows total
+// 500k, but the bar and percent measure the whole 1M window.
+test('measures against the model window, not the compaction window', { options: { mode: 'granular' } }, async ($, on) => {
+  info(on)
+  const rows = [
+    row('Messages', 60_000, 'permission'),
+    row('Free space', 407_000, 'promptBorder', 'free'),
+    row('Autocompact buffer', 33_000, 'inactive', 'buffer'),
+  ]
+  const usage = usageAt(undefined, rows)
+  on('session.usage', () => ({ value: { ...usage, context: { ...usage.context, window: 1_000_000 } } }) as never)
+  on('ui.render', engine)
+  const ui = await $.ui.mount({ plugin: 'statusline', surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(await ui.find({ type: 'Text', text: / 6%/ })).toBeDefined()
+  expect(await cellsIn(ui, 'permission')).toEqual(['▰'])
+  expect(await cellsIn(ui, '#4c4c7f')).toEqual(['▱'.repeat(19)])
+  await ui.unmount()
+})
+
+const compacted = [
+  row('System prompt', 3_000, 'promptBorder'),
+  row('System tools', 12_000, 'inactive'),
+  row('Messages', 5_000, 'permission'),
+  row('Free space', 147_000, 'promptBorder', 'free'),
+  row('Autocompact buffer', 33_000, 'inactive', 'buffer'),
+]
+
+test('redraws within two seconds of a compaction', { options: { mode: 'granular' } }, async ($, on) => {
+  info(on)
+  const clock = mock.clock(on)
+  let usage = usageAt(55, breakdown)
+  on('session.usage', () => ({ value: usage }) as never)
+  on('ui.render', engine)
+  on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ plugin: 'statusline', surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  await clock.advance(2000)
+  expect(await ui.find({ type: 'Text', text: / 55%/ })).toBeDefined()
+  // No event says so; the API's figure clearing is the only sign.
+  usage = usageAt(undefined, compacted)
+  expect(await ui.find({ type: 'Text', text: / 55%/ })).toBeDefined()
+  await clock.advance(2000)
+  // 20k of 200k: a tenth of the bar, one cell for messages.
+  expect(await ui.find({ type: 'Text', text: / 10%/ })).toBeDefined()
+  expect(await cellsIn(ui, 'permission')).toEqual(['▰'])
   await ui.unmount()
 })
 
