@@ -14,6 +14,11 @@
       "name": "tmux-session-rename",
       "source": "./tmux-session-rename",
       "description": "Names the tmux window after the conversation: on /rename, and when a named session starts or resumes"
+    },
+    {
+      "name": "slashdocs-extras",
+      "source": "./slashdocs-extras",
+      "description": "Additions to the stock slashdocs skill: review-round format and attaching large files"
     }
   ]
 }
