@@ -1,6 +1,6 @@
 {
   "name": "slashdocs-extras",
-  "version": "0.1.0",
-  "description": "Additions to the stock slashdocs skill: review-round format and attaching large files",
+  "version": "0.1.1",
+  "description": "Additions to the stock slashdocs skill: diagrams over text, review-round format and attaching large files",
   "author": { "name": "sidhantunnithan" }
 }

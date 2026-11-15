@@ -18,7 +18,7 @@
     {
       "name": "slashdocs-extras",
       "source": "./slashdocs-extras",
-      "description": "Additions to the stock slashdocs skill: review-round format and attaching large files"
+      "description": "Additions to the stock slashdocs skill: diagrams over text, review-round format and attaching large files"
     }
   ]
 }
